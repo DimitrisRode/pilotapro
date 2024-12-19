@@ -36,7 +36,7 @@ export function handleStartGame(io, socket) {
   
   if (!gameId) return;
   
-  const game = gameService.games.get(gameId);
+  const game = gameService.getGame(gameId);
   if (!game) return;
   
   if (canStartGame(game)) {
@@ -48,7 +48,7 @@ export function handleStartGame(io, socket) {
 
 function findAvailableGame() {
   return Array.from(gameService.games.entries())
-    .find(([_, game]) => game.players.size < 4)?.[0];
+    .find(([_, game]) => game.players.length < 4)?.[0];
 }
 
 function createNewGame() {
@@ -59,17 +59,18 @@ function createNewGame() {
 
 function findPlayerGame(playerId) {
   return Array.from(gameService.games.entries())
-    .find(([_, game]) => game.players.has(playerId))?.[0];
+    .find(([_, game]) => game.players.some(player => player.id === playerId))?.[0];
 }
 
 function notifyGameUpdate(io, gameId) {
-  const game = gameService.games.get(gameId);
-  if (!game) return;
-  
-  io.to(gameId).emit('game:updated', {
-    players: Array.from(game.players.values()),
-    teams: game.teams,
-    status: game.status
+  const game = gameService.getGame(gameId);
+  if (!game) {
+    return;
+  }
+
+  io.to(gameId).emit('game:update', {
+    players: game.players,
+    teams: game.teams
   });
 }
 
@@ -79,13 +80,13 @@ function canStartGame(game) {
 }
 
 function distributeCards(io, hands) {
-  hands.forEach((cards, playerId) => {
+  Object.entries(hands).forEach(([playerId, cards]) => {
     io.to(playerId).emit('game:cards-dealt', cards);
   });
 }
 
 function updateGameStatus(io, gameId, status) {
-  const game = gameService.games.get(gameId);
+  const game = gameService.getGame(gameId);
   if (!game) return;
   
   game.status = status;

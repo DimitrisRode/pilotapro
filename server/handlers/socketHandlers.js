@@ -15,12 +15,14 @@ export function setupSocketHandlers(io) {
         // Notify other players about the disconnection
         const gameId = Array.from(gameService.games.keys())[0]; // Temporary solution
         if (gameId) {
-          const game = gameService.games.get(gameId);
-          io.to(gameId).emit('game:player-left', {
-            playerId,
-            players: Array.from(game.players.values()),
-            teams: game.teams
-          });
+          const game = gameService.getGame(gameId);
+          if (game) {
+            io.to(gameId).emit('game:player-left', {
+              playerId,
+              players: game.players, // Now directly using the array
+              teams: game.teams
+            });
+          }
         }
       }
     });
