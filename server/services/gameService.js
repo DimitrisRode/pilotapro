@@ -1,97 +1,97 @@
+// server/services/gameService.js
 import { createDeck, shuffleDeck } from '../utils/cardUtils.js';
+import { GameStateService } from './gameState.js';
 
 class GameService {
   constructor() {
+    // Maps each gameId to a GameStateService instance
     this.games = new Map();
+    // Maps each playerId to the gameId they belong to
     this.playerGameMap = new Map();
   }
 
   createGame(gameId) {
-    const game = {
-      id: gameId,
-      players: new Map(),
-      teams: {
-        team1: [],
-        team2: []
-      },
-      status: 'waiting',
-      currentRound: {
-        cards: new Map(),
-        playedCards: []
-      }
-    };
-    this.games.set(gameId, game);
-    return game;
+    if (!this.games.has(gameId)) {
+      const gameState = new GameStateService();
+      this.games.set(gameId, gameState);
+    }
+    return this.games.get(gameId).getState();
   }
 
   addPlayer(gameId, player) {
-    const game = this.games.get(gameId);
-    if (!game) return null;
+    const gameStateService = this.games.get(gameId);
+    if (!gameStateService) return null;
 
-    game.players.set(player.id, player);
+    gameStateService.addPlayer(player);
     this.playerGameMap.set(player.id, gameId);
-    return game;
+
+    return gameStateService.getState();
   }
 
   joinTeam(gameId, playerId, team) {
-    const game = this.games.get(gameId);
-    if (!game || !game.players.has(playerId)) return false;
-    
-    // Remove from other team if exists
-    game.teams.team1 = game.teams.team1.filter(id => id !== playerId);
-    game.teams.team2 = game.teams.team2.filter(id => id !== playerId);
-    
-    // Add to new team
-    if (game.teams[team].length < 2) {
-      game.teams[team].push(playerId);
-      const player = game.players.get(playerId);
-      player.team = team;
-      return true;
-    }
-    return false;
+    const gameStateService = this.games.get(gameId);
+    if (!gameStateService) return false;
+
+    return gameStateService.selectTeam(playerId, team);
   }
 
   dealCards(gameId) {
-    const game = this.games.get(gameId);
-    if (!game) return null;
+    const gameStateService = this.games.get(gameId);
+    if (!gameStateService) return null;
+
+    const state = gameStateService.getState();
+    const players = state.players.map(p => p.id);
+    if (players.length === 0) return null;
 
     const deck = createDeck();
     shuffleDeck(deck);
 
-    // Deal cards to players
-    const hands = new Map();
-    const players = Array.from(game.players.keys());
     const cardsPerPlayer = Math.floor(deck.length / players.length);
-
     players.forEach((playerId, index) => {
       const start = index * cardsPerPlayer;
       const end = start + cardsPerPlayer;
-      hands.set(playerId, deck.slice(start, end));
+      const hand = deck.slice(start, end);
+      gameStateService.setPlayerHand(playerId, hand);
     });
 
-    game.currentRound.cards = hands;
-    return hands;
+    return gameStateService.getState().currentPlayerHands;
   }
 
   getPlayerCards(gameId, playerId) {
-    const game = this.games.get(gameId);
-    if (!game) return [];
-    return game.currentRound.cards.get(playerId) || [];
+    const gameStateService = this.games.get(gameId);
+    if (!gameStateService) return [];
+    const state = gameStateService.getState();
+    return state.currentPlayerHands[playerId] || [];
   }
 
   removePlayer(playerId) {
     const gameId = this.playerGameMap.get(playerId);
     if (!gameId) return false;
 
-    const game = this.games.get(gameId);
-    if (game) {
-      game.players.delete(playerId);
-      game.teams.team1 = game.teams.team1.filter(id => id !== playerId);
-      game.teams.team2 = game.teams.team2.filter(id => id !== playerId);
+    const gameStateService = this.games.get(gameId);
+    if (!gameStateService) return false;
+
+    const removed = gameStateService.removePlayer(playerId);
+    if (removed) {
       this.playerGameMap.delete(playerId);
       return true;
     }
     return false;
+  }
+
+  startGame(gameId) {
+    const gameStateService = this.games.get(gameId);
+    if (!gameStateService) return false;
+    return gameStateService.startGame();
+  }
+
+  findGameByPlayerId(playerId) {
+    return this.playerGameMap.get(playerId) || null;
+  }
+
+  getGame(gameId) {
+    const gameStateService = this.games.get(gameId);
+    return gameStateService ? gameStateService.getState() : null;
   }
 }
 

@@ -8,6 +8,7 @@ import { SERVER_CONFIG } from './config/server.config.js';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { testRoutes } from './routes/test.routes.js';
+import { errorHandler } from './middleware/errorHandler.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -21,6 +22,7 @@ setupCors(app);
 // Setup routes
 app.use('/api', healthRoutes);
 app.use('/api', testRoutes);
+app.use(errorHandler);
 
 // Setup Socket.IO with explicit configuration
 const io = new Server(server, {

@@ -1,26 +1,38 @@
-export type Team = 'team1' | 'team2';
+// src/types/game.ts
+export type PlayerID = string;
+export type TeamID = 'team1' | 'team2';
 
-export type Player = {
-  id: string;
-  nickname: string;
-  team?: Team;
-  videoEnabled: boolean;
-  isReady: boolean;
-};
+export interface Player {
+  id: PlayerID;
+  name: string;
+  avatarUrl?: string; 
+  // Add any player-specific fields
+}
 
-export type Card = {
-  suit: 'hearts' | 'diamonds' | 'clubs' | 'spades';
-  value: '7' | '8' | '9' | '10' | 'J' | 'Q' | 'K' | 'A';
-  imageUrl: string;
-};
+export interface Team {
+  id: TeamID;
+  players: PlayerID[]; 
+}
 
-export type GameState = {
-  isGameStarted: boolean;
-  isDealingCards: boolean;
-  scores: {
-    team1: number;
-    team2: number;
-  };
+export interface GameState {
+  status: 'waiting' | 'in-progress' | 'finished';
   players: Player[];
-  currentPlayerHands: Record<string, Card[]>;
-};
+  teams: Record<TeamID, Team>;
+  // Add other game-related fields, like score, trump suit, etc.
+}
+
+// Event Payloads
+export interface JoinGamePayload {
+  playerId: PlayerID;
+  playerName: string;
+}
+
+export interface SelectTeamPayload {
+  playerId: PlayerID;
+  teamId: TeamID;
+}
+
+export interface StartGamePayload {
+  gameId: string;
+  // Additional info if needed
+}

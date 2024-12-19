@@ -1,19 +1,27 @@
-class GameStateService {
+// server/services/gameState.js
+
+export class GameStateService {
   constructor() {
     this.state = {
-      players: [],
+      players: [], // each player: {id, name, team?}
       teams: {
         team1: [],
         team2: []
       },
       isGameStarted: false,
-      currentPlayerHands: {}
+      currentPlayerHands: {} // { [playerId]: card[] }
     };
   }
 
   addPlayer(player) {
-    this.state.players = this.state.players.filter(p => p.id !== player.id);
-    this.state.players.push(player);
+    // Ensure no duplicate player entries
+    const existingIndex = this.state.players.findIndex(p => p.id === player.id);
+    if (existingIndex !== -1) {
+      // Update existing player info if needed
+      this.state.players[existingIndex] = player;
+    } else {
+      this.state.players.push(player);
+    }
     return player;
   }
 
@@ -31,12 +39,12 @@ class GameStateService {
 
   selectTeam(playerId, team) {
     const player = this.state.players.find(p => p.id === playerId);
-    if (player && this.state.teams[team].length < 2) {
-      // Remove from previous team if any
+    if (player && (team === 'team1' || team === 'team2') && this.state.teams[team].length < 2) {
+      // Remove the player from any previously assigned team
       this.state.teams.team1 = this.state.teams.team1.filter(id => id !== playerId);
       this.state.teams.team2 = this.state.teams.team2.filter(id => id !== playerId);
-      
-      // Add to new team
+
+      // Assign the player to the chosen team
       this.state.teams[team].push(playerId);
       player.team = team;
       return true;
@@ -45,7 +53,10 @@ class GameStateService {
   }
 
   canStartGame() {
-    return this.state.teams.team1.length === 2 && this.state.teams.team2.length === 2;
+    return (
+      this.state.teams.team1.length === 2 &&
+      this.state.teams.team2.length === 2
+    );
   }
 
   startGame() {
@@ -64,5 +75,3 @@ class GameStateService {
     return this.state;
   }
 }
-
-export const gameState = new GameStateService();
