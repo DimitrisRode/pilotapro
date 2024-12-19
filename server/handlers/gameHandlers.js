@@ -48,7 +48,7 @@ export function handleStartGame(io, socket) {
 
 function findAvailableGame() {
   return Array.from(gameService.games.entries())
-    .find(([_, game]) => game.players.length < 4)?.[0];
+    .find(([_, game]) => game?.players?.length < 4)?.[0];
 }
 
 function createNewGame() {
@@ -59,7 +59,7 @@ function createNewGame() {
 
 function findPlayerGame(playerId) {
   return Array.from(gameService.games.entries())
-    .find(([_, game]) => game.players.some(player => player.id === playerId))?.[0];
+    .find(([_, game]) => game?.players?.some(player => player.id === playerId))?.[0];
 }
 
 function notifyGameUpdate(io, gameId) {
